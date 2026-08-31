@@ -3,32 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pong Game</title>
+    <title>Pong Game - Ultimate Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Pong Game</h1>
-            <div class="scoreboard">
-                <div class="score">
-                    <span class="label">Player</span>
-                    <span class="value" id="playerScore">0</span>
+            <h1>⚡ PONG ⚡</h1>
+            <div class="game-info">
+                <div class="difficulty-selector">
+                    <label>Difficulty:</label>
+                    <select id="difficultySelect">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="extreme">Extreme</option>
+                    </select>
                 </div>
-                <div class="score">
-                    <span class="label">Computer</span>
-                    <span class="value" id="computerScore">0</span>
+                <div class="sound-toggle">
+                    <input type="checkbox" id="soundToggle" checked>
+                    <label for="soundToggle">🔊 Sound</label>
                 </div>
             </div>
         </div>
         
-        <canvas id="pongCanvas" width="800" height="400"></canvas>
+        <div class="scoreboard">
+            <div class="player-section">
+                <div class="player-label">YOU</div>
+                <div class="score" id="playerScore">0</div>
+                <div class="streak">Streak: <span id="playerStreak">0</span></div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="computer-section">
+                <div class="player-label">AI</div>
+                <div class="score" id="computerScore">0</div>
+                <div class="streak">Streak: <span id="computerStreak">0</span></div>
+            </div>
+        </div>
         
-        <div class="instructions">
-            <p><strong>Controls:</strong> Use Mouse or Arrow Keys (↑/↓) to move your paddle</p>
-            <p><strong>Goal:</strong> Bounce the ball past your opponent's paddle to score</p>
-            <button id="startBtn" class="btn">Start Game</button>
-            <button id="resetBtn" class="btn">Reset Score</button>
+        <canvas id="pongCanvas" width="900" height="500"></canvas>
+        
+        <div class="stats">
+            <div class="stat">Ball Speed: <span id="ballSpeedDisplay">5</span>px/frame</div>
+            <div class="stat">Ball Angle: <span id="ballAngleDisplay">0</span>°</div>
+            <div class="stat">Rally: <span id="rallyCounter">0</span> hits</div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary">▶ Start Game</button>
+            <button id="resetBtn" class="btn btn-secondary">↻ Reset</button>
+            <button id="fullscreenBtn" class="btn btn-secondary">⛶ Fullscreen</button>
+            <div class="tutorial">
+                <p>🖱️ <strong>Mouse:</strong> Move paddle up/down</p>
+                <p>⌨️ <strong>Arrow Keys:</strong> Move paddle</p>
+                <p><strong>Space</strong> to start, <strong>P</strong> to pause</p>
+            </div>
         </div>
     </div>
     

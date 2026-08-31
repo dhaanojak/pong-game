@@ -1,57 +1,84 @@
 const canvas = document.getElementById('pongCanvas');
 const ctx = canvas.getContext('2d');
 
+// Audio Context for sound effects
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let soundEnabled = document.getElementById('soundToggle').checked;
+
 // Game Objects
-const paddleWidth = 10;
-const paddleHeight = 80;
-const ballSize = 7;
-const ballSpeed = 5;
+const paddleWidth = 12;
+const paddleHeight = 100;
+const ballSize = 8;
+const baseSpeed = 5;
+
+const difficulties = {
+    easy: { speed: 2.5, reaction: 80 },
+    medium: { speed: 3.5, reaction: 60 },
+    hard: { speed: 5, reaction: 40 },
+    extreme: { speed: 6.5, reaction: 20 }
+};
+
+let currentDifficulty = 'medium';
 
 const game = {
     playerScore: 0,
     computerScore: 0,
-    gameRunning: false
+    gameRunning: false,
+    playerStreak: 0,
+    computerStreak: 0,
+    rallyCount: 0,
+    ballHitsFrame: 0
 };
 
 const player = {
-    x: 10,
+    x: 15,
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    dy: 0,
-    speed: 6
+    speed: 7
 };
 
 const computer = {
-    x: canvas.width - paddleWidth - 10,
+    x: canvas.width - paddleWidth - 15,
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    dy: 0,
-    speed: 4.5
+    reactionCounter: 0
 };
 
 const ball = {
     x: canvas.width / 2,
     y: canvas.height / 2,
     size: ballSize,
-    dx: ballSpeed,
-    dy: ballSpeed,
-    speed: ballSpeed
+    dx: baseSpeed,
+    dy: baseSpeed,
+    speed: baseSpeed,
+    trail: []
 };
+
+const particles = [];
 
 const keys = {
     ArrowUp: false,
     ArrowDown: false,
-    w: false,
-    s: false
+    Space: false,
+    p: false,
+    P: false
 };
 
 let mouseY = canvas.height / 2;
 
 // Event Listeners
 document.addEventListener('keydown', (e) => {
-    if (e.key in keys) keys[e.key] = true;
+    if (e.key === ' ') {
+        e.preventDefault();
+        startGame();
+    } else if (e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        startGame();
+    } else if (e.key in keys) {
+        keys[e.key] = true;
+    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -65,16 +92,115 @@ canvas.addEventListener('mousemove', (e) => {
 
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('resetBtn').addEventListener('click', resetScore);
+document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+document.getElementById('difficultySelect').addEventListener('change', (e) => {
+    currentDifficulty = e.target.value;
+});
+
+document.getElementById('soundToggle').addEventListener('change', (e) => {
+    soundEnabled = e.target.checked;
+});
+
+// Sound Effects
+function playSound(type) {
+    if (!soundEnabled) return;
+    
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    
+    switch(type) {
+        case 'paddle':
+            oscillator.frequency.value = 600;
+            oscillator.start(now);
+            oscillator.stop(now + 0.05);
+            break;
+        case 'wall':
+            oscillator.frequency.value = 800;
+            oscillator.start(now);
+            oscillator.stop(now + 0.08);
+            break;
+        case 'score':
+            oscillator.frequency.value = 1200;
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            oscillator.start(now);
+            oscillator.stop(now + 0.15);
+            break;
+    }
+}
+
+// Particle Effects
+class Particle {
+    constructor(x, y, vx, vy, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = color;
+        this.life = 1;
+        this.decay = 0.02;
+    }
+    
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1; // gravity
+        this.life -= this.decay;
+    }
+    
+    draw() {
+        ctx.fillStyle = this.color.replace(')', `, ${this.life})`).replace('rgb', 'rgba');
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function createParticles(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count;
+        const speed = Math.random() * 3 + 2;
+        particles.push(new Particle(
+            x, y,
+            Math.cos(angle) * speed,
+            Math.sin(angle) * speed,
+            color
+        ));
+    }
+}
 
 // Game Functions
 function startGame() {
     game.gameRunning = !game.gameRunning;
-    document.getElementById('startBtn').textContent = game.gameRunning ? 'Pause Game' : 'Resume Game';
+    document.getElementById('startBtn').textContent = game.gameRunning ? '⏸ Pause' : '▶ Resume';
+}
+
+function toggleFullscreen() {
+    canvas.classList.toggle('fullscreen');
+    document.querySelector('.container').classList.toggle('fullscreen');
+    // Adjust canvas resolution for fullscreen
+    if (canvas.classList.contains('fullscreen')) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    } else {
+        canvas.width = 900;
+        canvas.height = 500;
+    }
 }
 
 function resetScore() {
     game.playerScore = 0;
     game.computerScore = 0;
+    game.playerStreak = 0;
+    game.computerStreak = 0;
+    game.rallyCount = 0;
     updateScore();
     resetBall();
 }
@@ -82,23 +208,26 @@ function resetScore() {
 function resetBall() {
     ball.x = canvas.width / 2;
     ball.y = canvas.height / 2;
-    ball.dx = ballSpeed * (Math.random() > 0.5 ? 1 : -1);
-    ball.dy = ballSpeed * (Math.random() > 0.5 ? 1 : -1);
+    ball.dx = baseSpeed * (Math.random() > 0.5 ? 1 : -1);
+    ball.dy = (Math.random() - 0.5) * baseSpeed;
+    ball.trail = [];
+    game.rallyCount = 0;
+    game.ballHitsFrame = 0;
 }
 
 function updateScore() {
     document.getElementById('playerScore').textContent = game.playerScore;
     document.getElementById('computerScore').textContent = game.computerScore;
+    document.getElementById('playerStreak').textContent = game.playerStreak;
+    document.getElementById('computerStreak').textContent = game.computerStreak;
+    document.getElementById('rallyCounter').textContent = game.rallyCount;
 }
 
 // Update Functions
 function updatePlayerPaddle() {
-    // Mouse control
-    if (mouseY - paddleHeight / 2 !== player.y) {
-        player.y += (mouseY - paddleHeight / 2 - player.y) * 0.15; // Smooth movement
-    }
+    const targetY = mouseY - paddleHeight / 2;
+    player.y += (targetY - player.y) * 0.12;
     
-    // Arrow keys control
     if (keys['ArrowUp']) {
         player.y = Math.max(0, player.y - player.speed);
     }
@@ -106,25 +235,27 @@ function updatePlayerPaddle() {
         player.y = Math.min(canvas.height - paddleHeight, player.y + player.speed);
     }
     
-    // Boundary check
-    if (player.y < 0) player.y = 0;
-    if (player.y + paddleHeight > canvas.height) player.y = canvas.height - paddleHeight;
+    player.y = Math.max(0, Math.min(canvas.height - paddleHeight, player.y));
 }
 
 function updateComputerPaddle() {
+    const difficulty = difficulties[currentDifficulty];
     const computerCenter = computer.y + computer.height / 2;
     const ballCenter = ball.y;
+    const threshold = difficulty.reaction;
     
-    // Simple AI: follow the ball with some delay
-    if (computerCenter < ballCenter - 35) {
-        computer.y += computer.speed;
-    } else if (computerCenter > ballCenter + 35) {
-        computer.y -= computer.speed;
+    computer.reactionCounter++;
+    
+    if (computer.reactionCounter > 3) {
+        if (computerCenter < ballCenter - threshold) {
+            computer.y += difficulty.speed;
+        } else if (computerCenter > ballCenter + threshold) {
+            computer.y -= difficulty.speed;
+        }
+        computer.reactionCounter = 0;
     }
     
-    // Boundary check
-    if (computer.y < 0) computer.y = 0;
-    if (computer.y + computer.height > canvas.height) computer.y = canvas.height - computer.height;
+    computer.y = Math.max(0, Math.min(canvas.height - paddleHeight, computer.y));
 }
 
 function updateBall() {
@@ -133,47 +264,97 @@ function updateBall() {
     ball.x += ball.dx;
     ball.y += ball.dy;
     
-    // Ball collision with top and bottom walls
+    // Store trail for visual effect
+    ball.trail.push({ x: ball.x, y: ball.y });
+    if (ball.trail.length > 8) ball.trail.shift();
+    
+    // Wall collisions
     if (ball.y - ball.size < 0 || ball.y + ball.size > canvas.height) {
         ball.dy = -ball.dy;
-        // Keep ball in bounds
+        playSound('wall');
+        createParticles(ball.x, ball.y, 'rgb(0, 255, 136)');
+        
         if (ball.y - ball.size < 0) ball.y = ball.size;
         if (ball.y + ball.size > canvas.height) ball.y = canvas.height - ball.size;
     }
     
-    // Ball collision with paddles
+    // Paddle collisions
     if (checkPaddleCollision(player)) {
-        ball.dx = Math.abs(ball.dx); // Ensure ball goes right
-        ball.x = player.x + player.width + ball.size;
-        // Add spin based on where ball hits paddle
-        const hitPos = (ball.y - (player.y + player.height / 2)) / (player.height / 2);
-        ball.dy += hitPos * 3;
+        if (ball.dx < 0) {
+            ball.dx = Math.abs(ball.dx);
+            ball.x = player.x + player.width + ball.size;
+            
+            const hitPos = (ball.y - (player.y + player.height / 2)) / (player.height / 2);
+            ball.dy += hitPos * 4;
+            
+            const newSpeed = Math.min(baseSpeed * 2, Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) + 0.3);
+            const angle = Math.atan2(ball.dy, ball.dx);
+            ball.dx = Math.cos(angle) * newSpeed;
+            ball.dy = Math.sin(angle) * newSpeed;
+            
+            game.rallyCount++;
+            game.playerStreak++;
+            game.computerStreak = 0;
+            
+            playSound('paddle');
+            createParticles(player.x + player.width, ball.y, 'rgb(255, 107, 157)', 10);
+        }
     }
     
     if (checkPaddleCollision(computer)) {
-        ball.dx = -Math.abs(ball.dx); // Ensure ball goes left
-        ball.x = computer.x - ball.size;
-        // Add spin based on where ball hits paddle
-        const hitPos = (ball.y - (computer.y + computer.height / 2)) / (computer.height / 2);
-        ball.dy += hitPos * 3;
+        if (ball.dx > 0) {
+            ball.dx = -Math.abs(ball.dx);
+            ball.x = computer.x - ball.size;
+            
+            const hitPos = (ball.y - (computer.y + computer.height / 2)) / (computer.height / 2);
+            ball.dy += hitPos * 4;
+            
+            const newSpeed = Math.min(baseSpeed * 2, Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) + 0.3);
+            const angle = Math.atan2(ball.dy, ball.dx);
+            ball.dx = Math.cos(angle) * newSpeed;
+            ball.dy = Math.sin(angle) * newSpeed;
+            
+            game.rallyCount++;
+            game.computerStreak++;
+            game.playerStreak = 0;
+            
+            playSound('paddle');
+            createParticles(computer.x, ball.y, 'rgb(255, 107, 157)', 10);
+        }
     }
     
-    // Ball out of bounds (scoring)
+    // Scoring
     if (ball.x - ball.size < 0) {
         game.computerScore++;
+        game.computerStreak++;
+        game.playerStreak = 0;
+        playSound('score');
+        createParticles(canvas.width / 2, canvas.height / 2, 'rgb(255, 215, 0)', 15);
         updateScore();
         resetBall();
     } else if (ball.x + ball.size > canvas.width) {
         game.playerScore++;
+        game.playerStreak++;
+        game.computerStreak = 0;
+        playSound('score');
+        createParticles(canvas.width / 2, canvas.height / 2, 'rgb(255, 215, 0)', 15);
         updateScore();
         resetBall();
     }
     
-    // Speed limiter
-    const maxSpeed = ballSpeed * 2;
-    if (Math.abs(ball.dy) > maxSpeed) {
-        ball.dy = (ball.dy > 0 ? 1 : -1) * maxSpeed;
+    // Speed capping
+    const maxSpeed = baseSpeed * 2.5;
+    const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+    if (currentSpeed > maxSpeed) {
+        const scale = maxSpeed / currentSpeed;
+        ball.dx *= scale;
+        ball.dy *= scale;
     }
+    
+    // Update stats display
+    document.getElementById('ballSpeedDisplay').textContent = Math.round(Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * 10) / 10;
+    const angle = Math.atan2(ball.dy, ball.dx) * 180 / Math.PI;
+    document.getElementById('ballAngleDisplay').textContent = Math.round(angle);
 }
 
 function checkPaddleCollision(paddle) {
@@ -191,9 +372,17 @@ function draw() {
     ctx.fillStyle = '#0a0e27';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw center line
-    ctx.strokeStyle = 'rgba(0, 255, 136, 0.2)';
-    ctx.setLineDash([10, 10]);
+    // Draw gradient background
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, 'rgba(0, 255, 136, 0.02)');
+    gradient.addColorStop(0.5, 'rgba(0, 255, 136, 0.01)');
+    gradient.addColorStop(1, 'rgba(0, 255, 136, 0.02)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw center line with animation
+    ctx.strokeStyle = `rgba(0, 255, 136, ${0.15 + 0.1 * Math.sin(Date.now() / 300)})`;
+    ctx.setLineDash([15, 10]);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(canvas.width / 2, 0);
@@ -201,25 +390,59 @@ function draw() {
     ctx.stroke();
     ctx.setLineDash([]);
     
-    // Draw paddles
+    // Draw ball trail
+    for (let i = 0; i < ball.trail.length; i++) {
+        const opacity = (i + 1) / ball.trail.length * 0.3;
+        ctx.fillStyle = `rgba(255, 0, 255, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(ball.trail[i].x, ball.trail[i].y, ball.size * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Draw paddles with glow
+    ctx.shadowColor = 'rgba(0, 255, 136, 0.5)';
+    ctx.shadowBlur = 15;
+    
     ctx.fillStyle = '#00ff88';
     ctx.fillRect(player.x, player.y, player.width, player.height);
     ctx.fillRect(computer.x, computer.y, computer.width, computer.height);
     
-    // Draw ball
+    ctx.shadowBlur = 0;
+    
+    // Draw ball with glow
+    ctx.shadowColor = 'rgba(255, 0, 255, 0.8)';
+    ctx.shadowBlur = 20;
+    
     ctx.fillStyle = '#ff00ff';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI * 2);
     ctx.fill();
     
+    ctx.shadowBlur = 0;
+    
+    // Draw particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
+    
     // Draw game status
     if (!game.gameRunning) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#00ff88';
-        ctx.font = '24px Arial';
+        ctx.font = 'bold 40px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 255, 136, 0.8)';
+        ctx.shadowBlur = 20;
+        ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.font = '20px Arial';
+        ctx.fillText('Press SPACE or P to resume', canvas.width / 2, canvas.height / 2 + 30);
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -232,5 +455,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Start the game loop
+// Initialize
+updateScore();
 gameLoop();
