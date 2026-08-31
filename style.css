@@ -5,20 +5,24 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
+    overflow: hidden;
 }
 
 .container {
     text-align: center;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(10, 14, 39, 0.95);
     padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 255, 136, 0.2), inset 0 0 20px rgba(0, 255, 136, 0.05);
+    border: 2px solid rgba(0, 255, 136, 0.3);
+    max-height: 95vh;
+    overflow-y: auto;
 }
 
 .header {
@@ -27,82 +31,236 @@ body {
 
 h1 {
     color: #00ff88;
-    font-size: 2.5em;
+    font-size: 3em;
     margin-bottom: 15px;
-    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.8), 0 0 40px rgba(0, 255, 136, 0.4);
+    letter-spacing: 3px;
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8), 0 0 40px rgba(0, 255, 136, 0.4); }
+    50% { text-shadow: 0 0 30px rgba(0, 255, 136, 1), 0 0 60px rgba(0, 255, 136, 0.6); }
+}
+
+.game-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.difficulty-selector, .sound-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.difficulty-selector label, .sound-toggle label {
+    margin: 0;
+}
+
+#difficultySelect {
+    background-color: #1a1a3e;
+    color: #00ff88;
+    border: 2px solid #00ff88;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+#difficultySelect:hover {
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+#soundToggle {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: #00ff88;
 }
 
 .scoreboard {
     display: flex;
     justify-content: space-around;
+    align-items: center;
     gap: 40px;
     margin-bottom: 20px;
+    padding: 20px;
+    background: rgba(0, 255, 136, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 255, 136, 0.2);
 }
 
-.score {
+.player-section, .computer-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex: 1;
 }
 
-.score .label {
-    color: #888;
+.player-label {
+    color: #00ff88;
     font-size: 0.9em;
     text-transform: uppercase;
     letter-spacing: 2px;
+    opacity: 0.8;
 }
 
-.score .value {
+.score {
     color: #00ff88;
-    font-size: 2.5em;
+    font-size: 3.5em;
     font-weight: bold;
-    text-shadow: 0 0 10px rgba(0, 255, 136, 0.7);
+    text-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
+    min-width: 80px;
+}
+
+.streak {
+    color: #ff6b9d;
+    font-size: 0.85em;
+    text-shadow: 0 0 10px rgba(255, 107, 157, 0.4);
+}
+
+.vs {
+    color: #00ff88;
+    font-size: 1.2em;
+    font-weight: bold;
+    opacity: 0.6;
 }
 
 #pongCanvas {
     display: block;
-    background-color: #0a0e27;
+    background: linear-gradient(180deg, #0a0e27 0%, #0f1535 100%);
     border: 3px solid #00ff88;
-    border-radius: 5px;
+    border-radius: 10px;
     margin: 20px auto;
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.4), inset 0 0 20px rgba(0, 255, 136, 0.1);
     cursor: none;
+    max-width: 100%;
+    height: auto;
 }
 
-.instructions {
-    color: #ccc;
-    margin-top: 20px;
-    font-size: 0.9em;
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+    padding: 15px;
+    background: rgba(0, 255, 136, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 136, 0.1);
 }
 
-.instructions p {
-    margin: 8px 0;
-}
-
-.instructions strong {
+.stat {
     color: #00ff88;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.stat span {
+    color: #ff6b9d;
+    text-shadow: 0 0 8px rgba(255, 107, 157, 0.5);
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
 }
 
 .btn {
-    background-color: #00ff88;
-    color: #0a0e27;
     border: none;
-    padding: 10px 20px;
-    margin: 10px 5px;
-    border-radius: 5px;
+    padding: 12px 24px;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
     font-size: 1em;
     transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.btn:hover {
-    background-color: #00dd6f;
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+.btn-primary {
+    background: linear-gradient(135deg, #00ff88 0%, #00dd6f 100%);
+    color: #0a0e27;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #00dd6f 0%, #00bb5f 100%);
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    background: rgba(0, 255, 136, 0.2);
+    color: #00ff88;
+    border: 2px solid #00ff88;
+}
+
+.btn-secondary:hover {
+    background: rgba(0, 255, 136, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
     transform: scale(1.05);
 }
 
 .btn:active {
     transform: scale(0.98);
+}
+
+.tutorial {
+    color: #888;
+    margin-top: 10px;
+    font-size: 0.85em;
+    line-height: 1.6;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+}
+
+.tutorial p {
+    margin: 5px 0;
+}
+
+.tutorial strong {
+    color: #00ff88;
+}
+
+/* Scrollbar styling */
+.container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.container::-webkit-scrollbar-track {
+    background: rgba(0, 255, 136, 0.1);
+    border-radius: 4px;
+}
+
+.container::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 136, 0.3);
+    border-radius: 4px;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 136, 0.5);
+}
+
+/* Fullscreen styles */
+.container.fullscreen {
+    max-height: 100vh;
+    padding: 20px;
+}
+
+#pongCanvas.fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
 }
