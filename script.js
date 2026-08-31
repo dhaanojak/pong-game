@@ -15,7 +15,7 @@ const difficulties = {
     easy: { speed: 2, reaction: 15, threshold: 120 },
     medium: { speed: 4, reaction: 8, threshold: 70 },
     hard: { speed: 5.5, reaction: 4, threshold: 50 },
-    extreme: { speed: 7, reaction: 2, threshold: 35 }
+    extreme: { speed: 7, reaction: 2, threshold: 35, usePrediction: true }
 };
 
 let currentDifficulty = 'medium';
@@ -176,6 +176,35 @@ function createParticles(x, y, color, count = 8) {
     }
 }
 
+// Predictive AI for Extreme difficulty
+function predictBallImpactY() {
+    // Only predict if ball is moving towards computer paddle
+    if (ball.dx <= 0) return ball.y;
+    
+    let predictedY = ball.y;
+    let predictedDy = ball.dy;
+    let tempX = ball.x;
+    let tempY = ball.y;
+    
+    // Simulate ball movement until it reaches computer paddle X position
+    while (tempX < computer.x) {
+        tempX += ball.dx;
+        tempY += predictedDy;
+        
+        // Account for wall bounces
+        if (tempY - ball.size < 0 || tempY + ball.size > canvas.height) {
+            predictedDy = -predictedDy;
+            if (tempY - ball.size < 0) tempY = ball.size;
+            if (tempY + ball.size > canvas.height) tempY = canvas.height - ball.size;
+        }
+    }
+    
+    predictedY = tempY;
+    
+    // Clamp prediction to canvas bounds
+    return Math.max(ball.size, Math.min(canvas.height - ball.size, predictedY));
+}
+
 // Game Functions
 function startGame() {
     game.gameRunning = !game.gameRunning;
@@ -241,19 +270,27 @@ function updatePlayerPaddle() {
 function updateComputerPaddle() {
     const difficulty = difficulties[currentDifficulty];
     const computerCenter = computer.y + computer.height / 2;
-    const ballCenter = ball.y;
-    const threshold = difficulty.threshold;
     
     computer.reactionCounter++;
     
     // AI reacts after a delay based on difficulty
     if (computer.reactionCounter >= difficulty.reaction) {
-        // Smooth movement towards ball
-        if (computerCenter < ballCenter - threshold / 2) {
+        let targetY = ball.y; // Default: track current ball position
+        
+        // Extreme AI uses predictive algorithm
+        if (difficulty.usePrediction && ball.dx > 0) {
+            targetY = predictBallImpactY();
+        }
+        
+        const threshold = difficulty.threshold;
+        
+        // Smooth movement towards target
+        if (computerCenter < targetY - threshold / 2) {
             computer.y += difficulty.speed;
-        } else if (computerCenter > ballCenter + threshold / 2) {
+        } else if (computerCenter > targetY + threshold / 2) {
             computer.y -= difficulty.speed;
         }
+        
         computer.reactionCounter = 0;
     }
     
