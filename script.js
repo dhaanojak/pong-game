@@ -12,10 +12,10 @@ const ballSize = 8;
 const baseSpeed = 5;
 
 const difficulties = {
-    easy: { speed: 2.5, reaction: 80 },
-    medium: { speed: 3.5, reaction: 60 },
-    hard: { speed: 5, reaction: 40 },
-    extreme: { speed: 6.5, reaction: 20 }
+    easy: { speed: 2, reaction: 15, threshold: 120 },
+    medium: { speed: 4, reaction: 8, threshold: 70 },
+    hard: { speed: 5.5, reaction: 4, threshold: 50 },
+    extreme: { speed: 7, reaction: 2, threshold: 35 }
 };
 
 let currentDifficulty = 'medium';
@@ -242,14 +242,16 @@ function updateComputerPaddle() {
     const difficulty = difficulties[currentDifficulty];
     const computerCenter = computer.y + computer.height / 2;
     const ballCenter = ball.y;
-    const threshold = difficulty.reaction;
+    const threshold = difficulty.threshold;
     
     computer.reactionCounter++;
     
-    if (computer.reactionCounter > 3) {
-        if (computerCenter < ballCenter - threshold) {
+    // AI reacts after a delay based on difficulty
+    if (computer.reactionCounter >= difficulty.reaction) {
+        // Smooth movement towards ball
+        if (computerCenter < ballCenter - threshold / 2) {
             computer.y += difficulty.speed;
-        } else if (computerCenter > ballCenter + threshold) {
+        } else if (computerCenter > ballCenter + threshold / 2) {
             computer.y -= difficulty.speed;
         }
         computer.reactionCounter = 0;
