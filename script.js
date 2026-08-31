@@ -11,6 +11,10 @@ const paddleHeight = 100;
 const ballSize = 8;
 const baseSpeed = 5;
 
+// Sweet spot configuration (center 30% of paddle)
+const sweetSpotSize = paddleHeight * 0.3;
+const sweetSpotMultiplier = 1.4; // 40% more spin in sweet spot
+
 const difficulties = {
     easy: { speed: 2, reaction: 15, threshold: 120 },
     medium: { speed: 4, reaction: 8, threshold: 70 },
@@ -176,6 +180,13 @@ function createParticles(x, y, color, count = 8) {
     }
 }
 
+// Check if hit is in sweet spot
+function isHitInSweetSpot(paddle, hitY) {
+    const paddleCenter = paddle.y + paddle.height / 2;
+    const distanceFromCenter = Math.abs(hitY - paddleCenter);
+    return distanceFromCenter < sweetSpotSize / 2;
+}
+
 // Predictive AI for Extreme difficulty
 function predictBallImpactY() {
     // Only predict if ball is moving towards computer paddle
@@ -317,14 +328,18 @@ function updateBall() {
         if (ball.y + ball.size > canvas.height) ball.y = canvas.height - ball.size;
     }
     
-    // Paddle collisions
+    // Paddle collisions - Player
     if (checkPaddleCollision(player)) {
         if (ball.dx < 0) {
             ball.dx = Math.abs(ball.dx);
             ball.x = player.x + player.width + ball.size;
             
+            // Enhanced angle control with sweet spot
             const hitPos = (ball.y - (player.y + player.height / 2)) / (player.height / 2);
-            ball.dy += hitPos * 4;
+            const inSweetSpot = isHitInSweetSpot(player, ball.y);
+            const spinMultiplier = inSweetSpot ? sweetSpotMultiplier : 1.0;
+            
+            ball.dy += hitPos * 5 * spinMultiplier;
             
             const newSpeed = Math.min(baseSpeed * 2, Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) + 0.3);
             const angle = Math.atan2(ball.dy, ball.dx);
@@ -340,13 +355,18 @@ function updateBall() {
         }
     }
     
+    // Paddle collisions - Computer
     if (checkPaddleCollision(computer)) {
         if (ball.dx > 0) {
             ball.dx = -Math.abs(ball.dx);
             ball.x = computer.x - ball.size;
             
+            // Computer also benefits from sweet spot for fairness
             const hitPos = (ball.y - (computer.y + computer.height / 2)) / (computer.height / 2);
-            ball.dy += hitPos * 4;
+            const inSweetSpot = isHitInSweetSpot(computer, ball.y);
+            const spinMultiplier = inSweetSpot ? sweetSpotMultiplier : 1.0;
+            
+            ball.dy += hitPos * 5 * spinMultiplier;
             
             const newSpeed = Math.min(baseSpeed * 2, Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) + 0.3);
             const angle = Math.atan2(ball.dy, ball.dx);
@@ -437,6 +457,11 @@ function draw() {
         ctx.arc(ball.trail[i].x, ball.trail[i].y, ball.size * 0.6, 0, Math.PI * 2);
         ctx.fill();
     }
+    
+    // Draw sweet spot indicator on player paddle
+    const playerSweetSpotTop = player.y + (player.height - sweetSpotSize) / 2;
+    ctx.fillStyle = 'rgba(0, 255, 136, 0.2)';
+    ctx.fillRect(player.x, playerSweetSpotTop, player.width, sweetSpotSize);
     
     // Draw paddles with glow
     ctx.shadowColor = 'rgba(0, 255, 136, 0.5)';
